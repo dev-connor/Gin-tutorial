@@ -1,26 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
+	"io"
 	"net/http"
+	"os"
 )
 
 func main() {
+	// Disable Console Color, you don't need console color when writing the logs to file.
+	gin.DisableConsoleColor()
+
+	// Logging to a file.
+	f, _ := os.Create("gin.log")
+	gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+
+	// Use the following code if you need to write the logs to file and console at the same time.
+	// gin.DefaultWriter = io.MultiWriter(f, os.Stdout)
+
 	router := gin.Default()
-	// Set a lower memory limit for multipart forms (default is 32 MiB)
-	router.MaxMultipartMemory = 8 << 20 // 8 MiB
-	router.POST("/upload", func(c *gin.Context) {
-		// Single file
-		file, _ := c.FormFile("file")
-		log.Println(file.Filename)
-
-		// Upload the file to specific dst.
-		dst := "."
-		c.SaveUploadedFile(file, dst)
-
-		c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
+	router.GET("/ping", func(c *gin.Context) {
+		c.String(http.StatusOK, "pong")
 	})
-	router.Run(":80")
+
+	router.Run(":8080")
 }

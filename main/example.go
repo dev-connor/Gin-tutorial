@@ -1,25 +1,34 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Person struct {
-	ID   string `uri:"id" binding:"required,uuid"`
-	Name string `uri:"name" binding:"required"`
+type testHeader struct {
+	Rate   int    `header:"Rate"`
+	Domain string `header:"Domain"`
 }
 
 func main() {
-	route := gin.Default()
-	route.GET("/:name/:id", func(c *gin.Context) {
-		var person Person
-		if err := c.ShouldBindUri(&person); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
-			return
+	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		h := testHeader{}
+
+		if err := c.ShouldBindHeader(&h); err != nil {
+			c.JSON(http.StatusOK, err)
 		}
-		c.JSON(http.StatusOK, gin.H{"name": person.Name, "uuid": person.ID})
+
+		fmt.Printf("%#v\n", h)
+		c.JSON(http.StatusOK, gin.H{"Rate": h.Rate, "Domain": h.Domain})
 	})
-	route.Run(":8088")
+
+	r.Run()
+
+	// client
+	// curl -H "rate:300" -H "domain:music" 127.0.0.1:8080/
+	// output
+	// {"Domain":"music","Rate":300}
 }

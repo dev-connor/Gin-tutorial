@@ -2,38 +2,32 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"log"
+	"time"
 )
 
 // simulate some private data
-var secrets = gin.H{
-	"foo":    gin.H{"email": "foo@bar.com", "phone": "123433"},
-	"austin": gin.H{"email": "austin@example.com", "phone": "666"},
-	"lena":   gin.H{"email": "lena@guapa.com", "phone": "523443"},
-}
-
 func main() {
 	r := gin.Default()
 
-	// Group using gin.BasicAuth() middleware
-	// gin.Accounts is a shortcut for map[string]string
-	authorized := r.Group("/admin", gin.BasicAuth(gin.Accounts{
-		"foo":    "bar",
-		"austin": "1234",
-		"lena":   "hello2",
-		"manu":   "4321",
-	}))
+	r.GET("/long_async", func(c *gin.Context) {
+		// create copy to be used inside the goroutine
+		//cCp := c.Copy()
+		go func() {
+			// simulate a long task with time.Sleep(). 5 seconds
+			time.Sleep(5 * time.Second)
 
-	// /admin/secrets endpoint
-	// hit "localhost:8080/admin/secrets
-	authorized.GET("/secrets", func(c *gin.Context) {
-		// get user, it was set by the BasicAuth middleware
-		user := c.MustGet(gin.AuthUserKey).(string)
-		if secret, ok := secrets[user]; ok {
-			c.JSON(http.StatusOK, gin.H{"user": user, "secret": secret})
-		} else {
-			c.JSON(http.StatusOK, gin.H{"user": user, "secret": "NO SECRET :("})
-		}
+			// note that you are using the copied context "cCp", IMPORTANT
+			log.Println("Done! in path " + c.Request.URL.Path)
+		}()
+	})
+
+	r.GET("/long_sync", func(c *gin.Context) {
+		// simulate a long task with time.Sleep(). 5 seconds
+		time.Sleep(5 * time.Second)
+
+		// since we are NOT using a goroutine, we do not have to copy the context
+		log.Println("Done! in path " + c.Request.URL.Path)
 	})
 
 	// Listen and serve on 0.0.0.0:8080

@@ -1,34 +1,43 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"log"
+	"time"
 )
 
-type testHeader struct {
-	Rate   int    `header:"Rate"`
-	Domain string `header:"Domain"`
+func Logger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		t := time.Now()
+
+		// Set example variable
+		c.Set("example", "12345")
+
+		// before request
+
+		c.Next()
+
+		// after request
+		latency := time.Since(t)
+		log.Print(latency)
+
+		// access the status we are sending
+		status := c.Writer.Status()
+		log.Println(status)
+	}
 }
 
 func main() {
-	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		h := testHeader{}
+	r := gin.New()
+	r.Use(Logger())
 
-		if err := c.ShouldBindHeader(&h); err != nil {
-			c.JSON(http.StatusOK, err)
-		}
+	r.GET("/test", func(c *gin.Context) {
+		example := c.MustGet("example").(string)
 
-		fmt.Printf("%#v\n", h)
-		c.JSON(http.StatusOK, gin.H{"Rate": h.Rate, "Domain": h.Domain})
+		// it would print: "12345"
+		log.Println(example)
 	})
 
-	r.Run()
-
-	// client
-	// curl -H "rate:300" -H "domain:music" 127.0.0.1:8080/
-	// output
-	// {"Domain":"music","Rate":300}
+	// Listen and serve on 0.0.0.0:8080
+	r.Run(":8080")
 }
